@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ورود به سیستم | E&R Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <h1>🔐 ورود به سیستم</h1>
+    </header>
+    <main class="container">
+        {% if error %}<div class="error-message">{{ error }}</div>{% endif %}
+        <form action="/login" method="post" class="tx-form" style="max-width: 400px;">
+            <div class="form-group">
+                <label for="username">نام کاربری:</label>
+                <input type="text" name="username" id="username" required>
+            </div>
+            <div class="form-group">
+                <label for="password">رمز عبور:</label>
+                <input type="password" name="password" id="password" required>
+            </div>
+            <button type="submit" class="btn-submit">ورود</button>
+        </form>
+        <div style="text-align: center; margin-top: 20px;">
+            <a href="/register" style="color: #1e3a5f;">حساب ندارید؟ ثبت‌نام کنید</a>
+        </div>
+    </main>
+</body>
+</html>

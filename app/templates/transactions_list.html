@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لیست معاملات | E&R Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <h1>📋 لیست معاملات</h1>
+        <a href="/" class="btn-back">🔙 بازگشت به داشبورد</a>
+    </header>
+
+    <main class="container">
+        <!-- دکمه ثبت معامله جدید -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="/transactions/new" style="background: #1e8e3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">➕ ثبت معامله جدید</a>
+        </div>
+
+        <!-- فرم جستجو -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <form action="/transactions" method="get" style="display: inline-flex; gap: 10px;">
+                {% if current_filter %}
+                    <input type="hidden" name="type" value="{{ current_filter }}">
+                {% endif %}
+                <input type="text" name="search" placeholder="جستجو در دسته‌بندی یا توضیحات..." 
+                       value="{{ current_search or '' }}"
+                       style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; width: 300px; font-family: inherit;">
+                <button type="submit" style="padding: 8px 16px; background: #1e3a5f; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit;">
+                    🔍 جستجو
+                </button>
+                {% if current_search %}
+                    <a href="/transactions{% if current_filter %}?type={{ current_filter }}{% endif %}" 
+                       style="padding: 8px 16px; background: #e0e0e0; color: #333; text-decoration: none; border-radius: 6px;">✖️ پاک کردن</a>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- بخش فیلترها -->
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <a href="/transactions" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if not current_filter %}#1e3a5f{% else %}#e0e0e0{% endif %}; color: {% if not current_filter %}#fff{% else %}#333{% endif %};">همه</a>
+            <a href="/transactions?type=income" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'income' %}#1e8e3e{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'income' %}#fff{% else %}#333{% endif %};">فقط عواید</a>
+            <a href="/transactions?type=expense" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'expense' %}#c0392b{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'expense' %}#fff{% else %}#333{% endif %};">فقط مصارف</a>
+        </div>
+
+        <!-- جدول معاملات -->
+        <div class="table-responsive">
+            <table class="tx-table">
+                <thead>
+                    <tr>
+                        <th>تاریخ</th>
+                        <th>نوع</th>
+                        <th>دسته‌بندی</th>
+                        <th>مبلغ (AFN)</th>
+                        <th>توضیحات</th>
+                        <th>عملیات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.transaction_date }}</td>
+                        <td>
+                            {% if tx.type == 'income' %}
+                                <span class="badge-income">عاید</span>
+                            {% else %}
+                                <span class="badge-expense">مصرف</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.category }}</td>
+                        <td class="amount-col">{{ "{:,.2f}".format(tx.amount) }}</td>
+                        <td>{{ tx.description or '-' }}</td>
+                        <td>
+                            <a href="/transactions/{{ tx.id }}/edit" style="color: #1e3a5f; text-decoration: none; font-weight: bold; margin-left: 10px;">✏️ ویرایش</a>
+                            <a href="/transactions/{{ tx.id }}/delete" onclick="return confirm('آیا مطمئن هستید؟');" style="color: #c0392b; text-decoration: none; font-weight: bold;">🗑️ حذف</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">هیچ معامله‌ای یافت نشد.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

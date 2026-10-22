@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="{{ lang }}" dir="{% if lang == 'fa' %}rtl{% else %}ltr{% endif %}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if lang == 'fa' %}مدیریت عواید و مصارف{% else %}E&R Management{% endif %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <header class="header" style="position: relative; padding-top: 50px;">
+        <!-- دکمه تغییر زبان (سمت چپ) -->
+        <div style="position: absolute; top: 12px; left: 16px;">
+            {% if lang == 'fa' %}
+                <a href="/en" style="color: #fff; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">English</a>
+            {% else %}
+                <a href="/" style="color: #fff; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">فارسی</a>
+            {% endif %}
+        </div>
+
+        <!-- دکمه خروج (سمت راست) -->
+        <div style="position: absolute; top: 12px; right: 16px;">
+            <a href="/logout" style="color: #fff; background: rgba(192, 57, 43, 0.8); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">
+                🚪 خروج
+            </a>
+        </div>
+
+        <!-- عنوان و زیرعنوان -->
+        {% if lang == 'fa' %}
+            <h1>📊 E&R Management — مدیریت عواید و مصارف</h1>
+            <p class="subtitle">ثبت و پیگیری عواید و مصارف روزانه</p>
+        {% else %}
+            <h1>📊 E&R Management</h1>
+            <p class="subtitle">Daily Revenue & Expense Tracking for Small Businesses</p>
+        {% endif %}
+    </header>
+
+    <main class="container">
+        <!-- دکمه‌های عملیات -->
+        <div style="text-align: center; margin-bottom: 20px;">
+            <a href="/transactions/new" style="background: #1e8e3e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">
+                {% if lang == 'fa' %}➕ ثبت معامله جدید{% else %}➕ New Transaction{% endif %}
+            </a>
+            <a href="/transactions" style="background: #1e3a5f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">
+                {% if lang == 'fa' %}📋 مشاهده لیست معاملات{% else %}📋 View Transactions{% endif %}
+            </a>
+        </div>
+
+        <!-- کارت‌های داشبورد -->
+        <section class="cards">
+            <div class="card card-income">
+                <h2>{% if lang == 'fa' %}کل عواید{% else %}Total Revenue{% endif %}</h2>
+                <p class="amount">{{ "{:,.2f}".format(total_income) }} {{ currency }}</p>
+            </div>
+            <div class="card card-expense">
+                <h2>{% if lang == 'fa' %}کل مصارف{% else %}Total Expenses{% endif %}</h2>
+                <p class="amount">{{ "{:,.2f}".format(total_expense) }} {{ currency }}</p>
+            </div>
+            <div class="card card-balance">
+                <h2>{% if lang == 'fa' %}بالانس{% else %}Balance{% endif %}</h2>
+                <p class="amount">{{ "{:,.2f}".format(balance) }} {{ currency }}</p>
+            </div>
+        </section>
+
+        <!-- پیام هشدار -->
+        <section class="notice">
+            {% if lang == 'fa' %}
+                <p>⚠️ این نسخه ابتدایی است. ثبت معامله و گزارش‌ها در مراحل بعدی اضافه می‌شوند.</p>
+            {% else %}
+                <p>⚠️ This is an early version. Transaction entry and reports will be added in upcoming stages.</p>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>
