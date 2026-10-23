@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form, Depends, Response
+from fastapi import FastAPI, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -6,12 +6,19 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
 
-from app.database import SessionLocal
+# ایمپورت‌های لازم برای ساخت خودکار جداول
+from app.database import SessionLocal, engine, Base
 from app import models
 from app.schemas import TransactionCreate
 from app.security import get_password_hash, verify_password, create_session_token, get_current_user
 
 app = FastAPI(title="E&R Management")
+
+# --- بخش بسیار مهم برای Render: ساخت خودکار جداول در استارتاپ ---
+@app.on_event("startup")
+async def startup():
+    # این دستور جداول را در دیتابیس Render می‌سازد (اگر وجود نداشته باشند)
+    Base.metadata.create_all(bind=engine)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
