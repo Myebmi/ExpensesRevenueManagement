@@ -5,8 +5,6 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
-import jdatetime
-
 from app.database import SessionLocal, engine, Base
 from app import models
 from app.schemas import TransactionCreate
@@ -21,9 +19,9 @@ async def startup():
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# ==========================================
-# اضافه کردن فیلتر تاریخ شمسی به Jinja2
-# ==========================================
+# --- این بخش باید دقیقاً اینجا باشد ---
+import jdatetime
+
 def to_jalali_filter(gregorian_date):
     if gregorian_date is None:
         return ""
@@ -34,6 +32,7 @@ def to_jalali_filter(gregorian_date):
         return str(gregorian_date)
 
 templates.env.filters["to_jalali"] = to_jalali_filter
+# -------------------------------------
 # ==========================================
 
 
