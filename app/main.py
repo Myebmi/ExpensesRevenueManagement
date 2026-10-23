@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
+import jdatetime
 
 from app.database import SessionLocal, engine, Base
 from app import models
@@ -20,6 +21,22 @@ async def startup():
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
+# ==========================================
+# اضافه کردن فیلتر تاریخ شمسی به Jinja2
+# ==========================================
+def to_jalali_filter(gregorian_date):
+    if gregorian_date is None:
+        return ""
+    try:
+        jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
+        return jalali_date.strftime("%Y/%m/%d")
+    except Exception:
+        return str(gregorian_date)
+
+templates.env.filters["to_jalali"] = to_jalali_filter
+# ==========================================
+
+
 def get_db():
     db = SessionLocal()
     try:
@@ -27,7 +44,7 @@ def get_db():
     finally:
         db.close()
 
-# ---------------- Auth Routes (بدون تغییر) ----------------
+# ---------------- Auth Routes ----------------
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {"request": request})
@@ -63,14 +80,13 @@ async def logout():
     response.delete_cookie("session_token")
     return response
 
-# ---------------- Dashboard Routes (فیلتر شده) ----------------
+# ---------------- Dashboard Routes ----------------
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
     
-    # فقط معاملات همین کاربر را محاسبه کن
     total_income = db.query(func.sum(models.Transaction.amount)).filter(
         models.Transaction.user_id == user.id, 
         models.Transaction.type == "income"
@@ -107,14 +123,13 @@ async def dashboard_en(request: Request, db: Session = Depends(get_db)):
         "balance": balance, "currency": "AFN", "lang": "en", "user": user
     })
 
-# ---------------- Transaction Routes (فیلتر شده) ----------------
+# ---------------- Transaction Routes ----------------
 @app.get("/transactions", response_class=HTMLResponse)
 async def list_transactions(request: Request, type: str = None, search: str = None, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    # فقط معاملات همین کاربر
     query = db.query(models.Transaction).filter(models.Transaction.user_id == user.id)
     
     if type in ["income", "expense"]:
@@ -156,7 +171,6 @@ async def create_transaction(request: Request, type: str = Form(...), amount: fl
             type=type, amount=amount, category=category, description=description,
             transaction_date=date.fromisoformat(transaction_date)
         )
-        # مهم: user_id را به معامله اختصاص بده
         new_tx = models.Transaction(**tx_data.model_dump(), user_id=user.id)
         db.add(new_tx)
         db.commit()
@@ -173,7 +187,6 @@ async def edit_transaction_form(transaction_id: int, request: Request, db: Sessi
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    # فقط اگر معامله متعلق به همین کاربر باشد
     tx = db.query(models.Transaction).filter(
         models.Transaction.id == transaction_id,
         models.Transaction.user_id == user.id
