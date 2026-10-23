@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
 
-# ایمپورت‌های لازم برای ساخت خودکار جداول
 from app.database import SessionLocal, engine, Base
 from app import models
 from app.schemas import TransactionCreate
@@ -14,10 +13,8 @@ from app.security import get_password_hash, verify_password, create_session_toke
 
 app = FastAPI(title="E&R Management")
 
-# --- بخش بسیار مهم برای Render: ساخت خودکار جداول در استارتاپ ---
 @app.on_event("startup")
 async def startup():
-    # این دستور جداول را در دیتابیس Render می‌سازد (اگر وجود نداشته باشند)
     Base.metadata.create_all(bind=engine)
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
@@ -30,23 +27,16 @@ def get_db():
     finally:
         db.close()
 
-# ---------------- Authentication Routes ----------------
+# ---------------- Auth Routes (بدون تغییر) ----------------
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse(request, "login.html", {"request": request})
 
 @app.post("/login")
-async def login(
-    request: Request,
-    username: str = Form(...), password: str = Form(...),
-    db: Session = Depends(get_db)
-):
+async def login(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.username == username).first()
     if not user or not verify_password(password, user.hashed_password):
-        return templates.TemplateResponse(request, "login.html", {
-            "request": request, "error": "نام کاربری یا رمز عبور اشتباه است."
-        })
-    
+        return templates.TemplateResponse(request, "login.html", {"request": request, "error": "نام کاربری یا رمز عبور اشتباه است."})
     token = create_session_token(user.username)
     response = RedirectResponse(url="/", status_code=303)
     response.set_cookie(key="session_token", value=token, httponly=True, max_age=86400)
@@ -57,22 +47,14 @@ async def register_page(request: Request):
     return templates.TemplateResponse(request, "register.html", {"request": request})
 
 @app.post("/register")
-async def register(
-    request: Request,
-    username: str = Form(...), password: str = Form(...),
-    db: Session = Depends(get_db)
-):
+async def register(request: Request, username: str = Form(...), password: str = Form(...), db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.username == username).first()
     if existing:
-        return templates.TemplateResponse(request, "register.html", {
-            "request": request, "error": "این نام کاربری قبلاً ثبت شده است."
-        })
-    
+        return templates.TemplateResponse(request, "register.html", {"request": request, "error": "این نام کاربری قبلاً ثبت شده است."})
     hashed = get_password_hash(password)
     new_user = models.User(username=username, hashed_password=hashed)
     db.add(new_user)
     db.commit()
-    
     return RedirectResponse(url="/login", status_code=303)
 
 @app.get("/logout")
@@ -81,15 +63,22 @@ async def logout():
     response.delete_cookie("session_token")
     return response
 
-# ---------------- Protected Dashboard Routes ----------------
+# ---------------- Dashboard Routes (فیلتر شده) ----------------
 @app.get("/", response_class=HTMLResponse)
 async def dashboard(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
     
-    total_income = db.query(func.sum(models.Transaction.amount)).filter(models.Transaction.type == "income").scalar() or 0
-    total_expense = db.query(func.sum(models.Transaction.amount)).filter(models.Transaction.type == "expense").scalar() or 0
+    # فقط معاملات همین کاربر را محاسبه کن
+    total_income = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.user_id == user.id, 
+        models.Transaction.type == "income"
+    ).scalar() or 0
+    total_expense = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.user_id == user.id, 
+        models.Transaction.type == "expense"
+    ).scalar() or 0
     balance = total_income - total_expense
     
     return templates.TemplateResponse(request, "dashboard.html", {
@@ -103,8 +92,14 @@ async def dashboard_en(request: Request, db: Session = Depends(get_db)):
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    total_income = db.query(func.sum(models.Transaction.amount)).filter(models.Transaction.type == "income").scalar() or 0
-    total_expense = db.query(func.sum(models.Transaction.amount)).filter(models.Transaction.type == "expense").scalar() or 0
+    total_income = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.user_id == user.id, 
+        models.Transaction.type == "income"
+    ).scalar() or 0
+    total_expense = db.query(func.sum(models.Transaction.amount)).filter(
+        models.Transaction.user_id == user.id, 
+        models.Transaction.type == "expense"
+    ).scalar() or 0
     balance = total_income - total_expense
     
     return templates.TemplateResponse(request, "dashboard.html", {
@@ -112,14 +107,15 @@ async def dashboard_en(request: Request, db: Session = Depends(get_db)):
         "balance": balance, "currency": "AFN", "lang": "en", "user": user
     })
 
-# ---------------- Protected Transaction Routes ----------------
+# ---------------- Transaction Routes (فیلتر شده) ----------------
 @app.get("/transactions", response_class=HTMLResponse)
 async def list_transactions(request: Request, type: str = None, search: str = None, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    query = db.query(models.Transaction)
+    # فقط معاملات همین کاربر
+    query = db.query(models.Transaction).filter(models.Transaction.user_id == user.id)
     
     if type in ["income", "expense"]:
         query = query.filter(models.Transaction.type == type)
@@ -145,17 +141,12 @@ async def new_transaction_form(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
-        
     return templates.TemplateResponse(request, "transaction_form.html", {
         "request": request, "lang": "fa", "today": date.today().isoformat(), "is_edit": False
     })
 
 @app.post("/transactions/new")
-async def create_transaction(
-    request: Request, type: str = Form(...), amount: float = Form(...),
-    category: str = Form(...), description: str = Form(None),
-    transaction_date: str = Form(...), db: Session = Depends(get_db)
-):
+async def create_transaction(request: Request, type: str = Form(...), amount: float = Form(...), category: str = Form(...), description: str = Form(None), transaction_date: str = Form(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
@@ -165,7 +156,8 @@ async def create_transaction(
             type=type, amount=amount, category=category, description=description,
             transaction_date=date.fromisoformat(transaction_date)
         )
-        new_tx = models.Transaction(**tx_data.model_dump())
+        # مهم: user_id را به معامله اختصاص بده
+        new_tx = models.Transaction(**tx_data.model_dump(), user_id=user.id)
         db.add(new_tx)
         db.commit()
         return RedirectResponse(url="/transactions", status_code=303)
@@ -181,7 +173,12 @@ async def edit_transaction_form(transaction_id: int, request: Request, db: Sessi
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    tx = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    # فقط اگر معامله متعلق به همین کاربر باشد
+    tx = db.query(models.Transaction).filter(
+        models.Transaction.id == transaction_id,
+        models.Transaction.user_id == user.id
+    ).first()
+    
     if not tx:
         return RedirectResponse(url="/transactions", status_code=303)
     
@@ -191,16 +188,16 @@ async def edit_transaction_form(transaction_id: int, request: Request, db: Sessi
     })
 
 @app.post("/transactions/{transaction_id}/edit")
-async def update_transaction(
-    transaction_id: int, request: Request, type: str = Form(...), amount: float = Form(...),
-    category: str = Form(...), description: str = Form(None),
-    transaction_date: str = Form(...), db: Session = Depends(get_db)
-):
+async def update_transaction(transaction_id: int, request: Request, type: str = Form(...), amount: float = Form(...), category: str = Form(...), description: str = Form(None), transaction_date: str = Form(...), db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    tx = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    tx = db.query(models.Transaction).filter(
+        models.Transaction.id == transaction_id,
+        models.Transaction.user_id == user.id
+    ).first()
+    
     if not tx:
         return RedirectResponse(url="/transactions", status_code=303)
 
@@ -225,7 +222,11 @@ async def delete_transaction(transaction_id: int, request: Request, db: Session 
     if not user:
         return RedirectResponse(url="/login", status_code=303)
         
-    tx = db.query(models.Transaction).filter(models.Transaction.id == transaction_id).first()
+    tx = db.query(models.Transaction).filter(
+        models.Transaction.id == transaction_id,
+        models.Transaction.user_id == user.id
+    ).first()
+    
     if tx:
         db.delete(tx)
         db.commit()
