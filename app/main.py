@@ -1,10 +1,15 @@
 from fastapi import FastAPI, Request, Form, Depends
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
+import jdatetime
+import csv
+import io
+import calendar
+
 from app.database import SessionLocal, engine, Base
 from app import models
 from app.schemas import TransactionCreate
@@ -19,9 +24,9 @@ async def startup():
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 templates = Jinja2Templates(directory="app/templates")
 
-# --- این بخش باید دقیقاً اینجا باشد ---
-import jdatetime
-
+# ==========================================
+# فیلتر تاریخ شمسی برای Jinja2
+# ==========================================
 def to_jalali_filter(gregorian_date):
     if gregorian_date is None:
         return ""
@@ -32,7 +37,6 @@ def to_jalali_filter(gregorian_date):
         return str(gregorian_date)
 
 templates.env.filters["to_jalali"] = to_jalali_filter
-# -------------------------------------
 # ==========================================
 
 
@@ -243,6 +247,85 @@ async def delete_transaction(transaction_id: int, request: Request, db: Session 
         db.delete(tx)
         db.commit()
     return RedirectResponse(url="/transactions", status_code=303)
+
+
+# ---------------- Report Routes ----------------
+@app.get("/reports", response_class=HTMLResponse)
+async def reports_page(request: Request, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    
+    today = date.today()
+    if not start_date:
+        start_date = today.replace(day=1).isoformat()
+    if not end_date:
+        _, last_day = calendar.monthrange(today.year, today.month)
+        end_date = today.replace(day=last_day).isoformat()
+    
+    start = date.fromisoformat(start_date)
+    end = date.fromisoformat(end_date)
+    
+    transactions = db.query(models.Transaction).filter(
+        models.Transaction.user_id == user.id,
+        models.Transaction.transaction_date >= start,
+        models.Transaction.transaction_date <= end
+    ).order_by(models.Transaction.transaction_date.desc()).all()
+    
+    total_income = sum(tx.amount for tx in transactions if tx.type == "income")
+    total_expense = sum(tx.amount for tx in transactions if tx.type == "expense")
+    balance = total_income - total_expense
+    
+    return templates.TemplateResponse(request, "reports.html", {
+        "request": request, "lang": "fa", "user": user,
+        "transactions": transactions,
+        "start_date": start_date, "end_date": end_date,
+        "total_income": total_income, "total_expense": total_expense, "balance": balance,
+        "currency": "AFN"
+    })
+
+@app.get("/reports/export")
+async def export_report_csv(request: Request, start_date: str = None, end_date: str = None, db: Session = Depends(get_db)):
+    user = get_current_user(request, db)
+    if not user:
+        return RedirectResponse(url="/login", status_code=303)
+    
+    if not start_date or not end_date:
+        return RedirectResponse(url="/reports", status_code=303)
+    
+    start = date.fromisoformat(start_date)
+    end = date.fromisoformat(end_date)
+    
+    transactions = db.query(models.Transaction).filter(
+        models.Transaction.user_id == user.id,
+        models.Transaction.transaction_date >= start,
+        models.Transaction.transaction_date <= end
+    ).order_by(models.Transaction.transaction_date.asc()).all()
+    
+    output = io.StringIO()
+    output.write('\ufeff') # BOM for Excel UTF-8 support
+    writer = csv.writer(output)
+    
+    writer.writerow(["تاریخ", "نوع", "دسته‌بندی", "مبلغ (AFN)", "توضیحات"])
+    
+    for tx in transactions:
+        type_fa = "عاید" if tx.type == "income" else "مصرف"
+        writer.writerow([
+            tx.transaction_date.isoformat(),
+            type_fa,
+            tx.category,
+            tx.amount,
+            tx.description or ""
+        ])
+    
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=report_{start_date}_to_{end_date}.csv"}
+    )
+
 
 @app.get("/health")
 async def health():

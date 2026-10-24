@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>گزارش معاملات | E&R Management</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <header class="header">
+        <h1>📊 گزارش معاملات</h1>
+        <a href="/" class="btn-back">🔙 بازگشت به داشبورد</a>
+    </header>
+
+    <main class="container">
+        <!-- فرم انتخاب بازه زمانی -->
+        <div style="background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+            <form action="/reports" method="get" style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center;">
+                <label style="font-weight: bold;">از تاریخ:</label>
+                <input type="date" name="start_date" value="{{ start_date }}" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                
+                <label style="font-weight: bold;">تا تاریخ:</label>
+                <input type="date" name="end_date" value="{{ end_date }}" style="padding: 8px; border: 1px solid #ccc; border-radius: 6px;">
+                
+                <button type="submit" style="padding: 8px 16px; background: #1e3a5f; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                    🔍 نمایش گزارش
+                </button>
+            </form>
+        </div>
+
+        <!-- کارت‌های خلاصه -->
+        <section class="cards">
+            <div class="card card-income">
+                <h2>کل عواید در این بازه</h2>
+                <p class="amount">{{ "{:,.2f}".format(total_income) }} {{ currency }}</p>
+            </div>
+            <div class="card card-expense">
+                <h2>کل مصارف در این بازه</h2>
+                <p class="amount">{{ "{:,.2f}".format(total_expense) }} {{ currency }}</p>
+            </div>
+            <div class="card card-balance">
+                <h2>بیلانس این بازه</h2>
+                <p class="amount">{{ "{:,.2f}".format(balance) }} {{ currency }}</p>
+            </div>
+        </section>
+
+        <!-- دکمه دانلود CSV -->
+        <div style="text-align: center; margin: 20px 0;">
+            <a href="/reports/export?start_date={{ start_date }}&end_date={{ end_date }}" 
+               style="background: #1e8e3e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;">
+                📥 دانلود گزارش (CSV / Excel)
+            </a>
+        </div>
+
+        <!-- جدول معاملات -->
+        <div class="table-responsive">
+            <table class="tx-table">
+                <thead>
+                    <tr>
+                        <th>تاریخ (شمسی)</th>
+                        <th>نوع</th>
+                        <th>دسته‌بندی</th>
+                        <th>مبلغ (AFN)</th>
+                        <th>توضیحات</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for tx in transactions %}
+                    <tr>
+                        <td>{{ tx.transaction_date | to_jalali }}</td>
+                        <td>
+                            {% if tx.type == 'income' %}
+                                <span class="badge-income">عاید</span>
+                            {% else %}
+                                <span class="badge-expense">مصرف</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ tx.category }}</td>
+                        <td class="amount-col">{{ "{:,.2f}".format(tx.amount) }}</td>
+                        <td>{{ tx.description or '-' }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 20px;">در این بازه زمانی هیچ معامله‌ای یافت نشد.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
