@@ -35,15 +35,18 @@
 
             <div class="form-group">
                 <label for="category">دسته‌بندی:</label>
-                <input type="text" name="category" id="category" required 
-                       value="{% if tx %}{{ tx.category }}{% endif %}" placeholder="مثال: فروش روزانه، اجاره">
+                <select name="category" id="category" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 6px; font-family: inherit; font-size: 14px;">
+                    <option value="">-- انتخاب دسته‌بندی --</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat }}" {% if tx and tx.category == cat %}selected{% endif %}>{{ cat }}</option>
+                    {% endfor %}
+                </select>
             </div>
 
             <div class="form-group">
                 <label for="transaction_date">تاریخ:</label>
                 <input type="date" name="transaction_date" id="transaction_date" required 
-                       value="{% if tx %}{{ tx.transaction_date | to_jalali }}{% else %}{{ today | to_jalali }}{% endif %}"
-
+                       value="{% if tx %}{{ tx.transaction_date }}{% else %}{{ today }}{% endif %}">
             </div>
 
             <div class="form-group">

@@ -2,6 +2,9 @@ from fastapi import FastAPI, Request, Form, Depends
 from fastapi.responses import HTMLResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from fastapi.exception_handlers import http_exception_handler
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 from datetime import date
@@ -38,6 +41,15 @@ def to_jalali_filter(gregorian_date):
 
 templates.env.filters["to_jalali"] = to_jalali_filter
 # ==========================================
+
+# ==========================================
+# مدیریت خطای 404 (صفحه اختصاصی)
+# ==========================================
+@app.exception_handler(StarletteHTTPException)
+async def custom_http_exception_handler(request: Request, exc: StarletteHTTPException):
+    if exc.status_code == 404:
+        return templates.TemplateResponse(request, "404.html", {"request": request}, status_code=404)
+    return await http_exception_handler(request, exc)
 
 
 def get_db():
@@ -159,8 +171,12 @@ async def new_transaction_form(request: Request, db: Session = Depends(get_db)):
     user = get_current_user(request, db)
     if not user:
         return RedirectResponse(url="/login", status_code=303)
+    
+    categories = ["فروش روزانه", "فروش عمده", "اجاره", "خرید مواد", "برق و آب", "حقوق کارمندان", "سایر"]
+    
     return templates.TemplateResponse(request, "transaction_form.html", {
-        "request": request, "lang": "fa", "today": date.today().isoformat(), "is_edit": False
+        "request": request, "lang": "fa", "today": date.today().isoformat(), 
+        "is_edit": False, "categories": categories
     })
 
 @app.post("/transactions/new")
@@ -177,11 +193,12 @@ async def create_transaction(request: Request, type: str = Form(...), amount: fl
         new_tx = models.Transaction(**tx_data.model_dump(), user_id=user.id)
         db.add(new_tx)
         db.commit()
-        return RedirectResponse(url="/transactions", status_code=303)
+        return RedirectResponse(url="/transactions?msg=created", status_code=303)
     except Exception as e:
+        categories = ["فروش روزانه", "فروش عمده", "اجاره", "خرید مواد", "برق و آب", "حقوق کارمندان", "سایر"]
         return templates.TemplateResponse(request, "transaction_form.html", {
             "request": request, "lang": "fa", "today": transaction_date, 
-            "error": f"خطا در ثبت: {str(e)}", "is_edit": False
+            "error": f"خطا در ثبت: {str(e)}", "is_edit": False, "categories": categories
         })
 
 @app.get("/transactions/{transaction_id}/edit", response_class=HTMLResponse)
@@ -198,9 +215,11 @@ async def edit_transaction_form(transaction_id: int, request: Request, db: Sessi
     if not tx:
         return RedirectResponse(url="/transactions", status_code=303)
     
+    categories = ["فروش روزانه", "فروش عمده", "اجاره", "خرید مواد", "برق و آب", "حقوق کارمندان", "سایر"]
+    
     return templates.TemplateResponse(request, "transaction_form.html", {
         "request": request, "lang": "fa", "today": tx.transaction_date.isoformat(),
-        "tx": tx, "is_edit": True
+        "tx": tx, "is_edit": True, "categories": categories
     })
 
 @app.post("/transactions/{transaction_id}/edit")
@@ -225,11 +244,12 @@ async def update_transaction(transaction_id: int, request: Request, type: str = 
         for key, value in tx_data.model_dump().items():
             setattr(tx, key, value)
         db.commit()
-        return RedirectResponse(url="/transactions", status_code=303)
+        return RedirectResponse(url="/transactions?msg=updated", status_code=303)
     except Exception as e:
+        categories = ["فروش روزانه", "فروش عمده", "اجاره", "خرید مواد", "برق و آب", "حقوق کارمندان", "سایر"]
         return templates.TemplateResponse(request, "transaction_form.html", {
             "request": request, "lang": "fa", "today": transaction_date,
-            "tx": tx, "is_edit": True, "error": f"خطا در ویرایش: {str(e)}"
+            "tx": tx, "is_edit": True, "error": f"خطا در ویرایش: {str(e)}", "categories": categories
         })
 
 @app.get("/transactions/{transaction_id}/delete")
@@ -246,7 +266,7 @@ async def delete_transaction(transaction_id: int, request: Request, db: Session 
     if tx:
         db.delete(tx)
         db.commit()
-    return RedirectResponse(url="/transactions", status_code=303)
+    return RedirectResponse(url="/transactions?msg=deleted", status_code=303)
 
 
 # ---------------- Report Routes ----------------
@@ -303,7 +323,7 @@ async def export_report_csv(request: Request, start_date: str = None, end_date: 
     ).order_by(models.Transaction.transaction_date.asc()).all()
     
     output = io.StringIO()
-    output.write('\ufeff') # BOM for Excel UTF-8 support
+    output.write('\ufeff') 
     writer = csv.writer(output)
     
     writer.writerow(["تاریخ", "نوع", "دسته‌بندی", "مبلغ (AFN)", "توضیحات"])

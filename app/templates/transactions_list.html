@@ -13,6 +13,15 @@
     </header>
 
     <main class="container">
+        <!-- پیام‌های موفقیت -->
+        {% if request.query_params.get('msg') == 'created' %}
+            <div class="alert alert-success">✅ معامله با موفقیت ثبت شد.</div>
+        {% elif request.query_params.get('msg') == 'updated' %}
+            <div class="alert alert-success">✅ معامله با موفقیت ویرایش شد.</div>
+        {% elif request.query_params.get('msg') == 'deleted' %}
+            <div class="alert alert-danger">🗑️ معامله با موفقیت حذف شد.</div>
+        {% endif %}
+
         <!-- دکمه ثبت معامله جدید -->
         <div style="text-align: center; margin-bottom: 20px;">
             <a href="/transactions/new" style="background: #1e8e3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">➕ ثبت معامله جدید</a>
@@ -60,7 +69,7 @@
                 <tbody>
                     {% for tx in transactions %}
                     <tr>
-                        ل
+                        <td>{{ tx.transaction_date | to_jalali }}</td>
                         <td>
                             {% if tx.type == 'income' %}
                                 <span class="badge-income">عاید</span>
