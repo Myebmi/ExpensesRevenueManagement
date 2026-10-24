@@ -1,69 +1,67 @@
 <!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<html lang="{{ lang }}" dir="{% if lang == 'fa' %}rtl{% else %}ltr{% endif %}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لیست معاملات | E&R Management</title>
+    <title>{% if lang == 'fa' %}لیست معاملات{% else %}Transactions List{% endif %} | E&R Management</title>
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
     <header class="header">
-        <h1>📋 لیست معاملات</h1>
-        <a href="/" class="btn-back">🔙 بازگشت به داشبورد</a>
+        <h1>{% if lang == 'fa' %}📋 لیست معاملات{% else %}📋 Transactions List{% endif %}</h1>
+        <a href="/" class="btn-back">🔙 {% if lang == 'fa' %}بازگشت به داشبورد{% else %}Back to Dashboard{% endif %}</a>
     </header>
 
     <main class="container">
-        <!-- پیام‌های موفقیت -->
         {% if request.query_params.get('msg') == 'created' %}
-            <div class="alert alert-success">✅ معامله با موفقیت ثبت شد.</div>
+            <div class="alert alert-success">{% if lang == 'fa' %}✅ معامله با موفقیت ثبت شد.{% else %}✅ Transaction created successfully.{% endif %}</div>
         {% elif request.query_params.get('msg') == 'updated' %}
-            <div class="alert alert-success">✅ معامله با موفقیت ویرایش شد.</div>
+            <div class="alert alert-success">{% if lang == 'fa' %}✅ معامله با موفقیت ویرایش شد.{% else %}✅ Transaction updated successfully.{% endif %}</div>
         {% elif request.query_params.get('msg') == 'deleted' %}
-            <div class="alert alert-danger">🗑️ معامله با موفقیت حذف شد.</div>
+            <div class="alert alert-danger">{% if lang == 'fa' %}🗑️ معامله با موفقیت حذف شد.{% else %}🗑️ Transaction deleted successfully.{% endif %}</div>
         {% endif %}
 
-        <!-- دکمه ثبت معامله جدید -->
         <div style="text-align: center; margin-bottom: 20px;">
-            <a href="/transactions/new" style="background: #1e8e3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">➕ ثبت معامله جدید</a>
+            <a href="/transactions/new?lang={{ lang }}" style="background: #1e8e3e; color: white; padding: 10px 20px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+                {% if lang == 'fa' %}➕ ثبت معامله جدید{% else %}➕ New Transaction{% endif %}
+            </a>
         </div>
 
-        <!-- فرم جستجو -->
         <div style="text-align: center; margin-bottom: 20px;">
             <form action="/transactions" method="get" style="display: inline-flex; gap: 10px;">
+                <input type="hidden" name="lang" value="{{ lang }}">
                 {% if current_filter %}
                     <input type="hidden" name="type" value="{{ current_filter }}">
                 {% endif %}
-                <input type="text" name="search" placeholder="جستجو در دسته‌بندی یا توضیحات..." 
+                <input type="text" name="search" placeholder="{% if lang == 'fa' %}جستجو در دسته‌بندی یا توضیحات...{% else %}Search in category or description...{% endif %}" 
                        value="{{ current_search or '' }}"
                        style="padding: 8px 12px; border: 1px solid #ccc; border-radius: 6px; width: 300px; font-family: inherit;">
                 <button type="submit" style="padding: 8px 16px; background: #1e3a5f; color: white; border: none; border-radius: 6px; cursor: pointer; font-family: inherit;">
-                    🔍 جستجو
+                    🔍 {% if lang == 'fa' %}جستجو{% else %}Search{% endif %}
                 </button>
                 {% if current_search %}
-                    <a href="/transactions{% if current_filter %}?type={{ current_filter }}{% endif %}" 
-                       style="padding: 8px 16px; background: #e0e0e0; color: #333; text-decoration: none; border-radius: 6px;">✖️ پاک کردن</a>
+                    <a href="/transactions?lang={{ lang }}{% if current_filter %}&type={{ current_filter }}{% endif %}" 
+                       style="padding: 8px 16px; background: #e0e0e0; color: #333; text-decoration: none; border-radius: 6px;">✖️ {% if lang == 'fa' %}پاک کردن{% else %}Clear{% endif %}</a>
                 {% endif %}
             </form>
         </div>
 
-        <!-- بخش فیلترها -->
         <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
-            <a href="/transactions" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if not current_filter %}#1e3a5f{% else %}#e0e0e0{% endif %}; color: {% if not current_filter %}#fff{% else %}#333{% endif %};">همه</a>
-            <a href="/transactions?type=income" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'income' %}#1e8e3e{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'income' %}#fff{% else %}#333{% endif %};">فقط عواید</a>
-            <a href="/transactions?type=expense" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'expense' %}#c0392b{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'expense' %}#fff{% else %}#333{% endif %};">فقط مصارف</a>
+            <a href="/transactions?lang={{ lang }}" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if not current_filter %}#1e3a5f{% else %}#e0e0e0{% endif %}; color: {% if not current_filter %}#fff{% else %}#333{% endif %};">{% if lang == 'fa' %}همه{% else %}All{% endif %}</a>
+            <a href="/transactions?type=income&lang={{ lang }}" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'income' %}#1e8e3e{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'income' %}#fff{% else %}#333{% endif %};">{% if lang == 'fa' %}فقط عواید{% else %}Income Only{% endif %}</a>
+            <a href="/transactions?type=expense&lang={{ lang }}" style="padding: 8px 16px; text-decoration: none; border-radius: 6px; background: {% if current_filter == 'expense' %}#c0392b{% else %}#e0e0e0{% endif %}; color: {% if current_filter == 'expense' %}#fff{% else %}#333{% endif %};">{% if lang == 'fa' %}فقط مصارف{% else %}Expenses Only{% endif %}</a>
         </div>
 
-        <!-- جدول معاملات -->
         <div class="table-responsive">
             <table class="tx-table">
                 <thead>
                     <tr>
-                        <th>تاریخ</th>
-                        <th>نوع</th>
-                        <th>دسته‌بندی</th>
-                        <th>مبلغ (AFN)</th>
-                        <th>توضیحات</th>
-                        <th>عملیات</th>
+                        <th>{% if lang == 'fa' %}تاریخ{% else %}Date{% endif %}</th>
+                        <th>{% if lang == 'fa' %}نوع{% else %}Type{% endif %}</th>
+                        <th>{% if lang == 'fa' %}دسته‌بندی{% else %}Category{% endif %}</th>
+                        <th>{% if lang == 'fa' %}مبلغ (AFN){% else %}Amount (AFN){% endif %}</th>
+                        <th>{% if lang == 'fa' %}توضیحات{% else %}Description{% endif %}</th>
+                        <th>{% if lang == 'fa' %}عملیات{% else %}Actions{% endif %}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -72,22 +70,22 @@
                         <td>{{ tx.transaction_date | to_jalali }}</td>
                         <td>
                             {% if tx.type == 'income' %}
-                                <span class="badge-income">عاید</span>
+                                <span class="badge-income">{% if lang == 'fa' %}عاید{% else %}Income{% endif %}</span>
                             {% else %}
-                                <span class="badge-expense">مصرف</span>
+                                <span class="badge-expense">{% if lang == 'fa' %}مصرف{% else %}Expense{% endif %}</span>
                             {% endif %}
                         </td>
                         <td>{{ tx.category }}</td>
                         <td class="amount-col">{{ "{:,.2f}".format(tx.amount) }}</td>
                         <td>{{ tx.description or '-' }}</td>
                         <td>
-                            <a href="/transactions/{{ tx.id }}/edit" style="color: #1e3a5f; text-decoration: none; font-weight: bold; margin-left: 10px;">✏️ ویرایش</a>
-                            <a href="/transactions/{{ tx.id }}/delete" onclick="return confirm('آیا مطمئن هستید؟');" style="color: #c0392b; text-decoration: none; font-weight: bold;">🗑️ حذف</a>
+                            <a href="/transactions/{{ tx.id }}/edit?lang={{ lang }}" style="color: #1e3a5f; text-decoration: none; font-weight: bold; margin-left: 10px;">✏️ {% if lang == 'fa' %}ویرایش{% else %}Edit{% endif %}</a>
+                            <a href="/transactions/{{ tx.id }}/delete?lang={{ lang }}" onclick="return confirm('{% if lang == 'fa' %}آیا مطمئن هستید؟{% else %}Are you sure?{% endif %}');" style="color: #c0392b; text-decoration: none; font-weight: bold;">🗑️ {% if lang == 'fa' %}حذف{% else %}Delete{% endif %}</a>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="6" style="text-align: center; padding: 20px;">هیچ معامله‌ای یافت نشد.</td>
+                        <td colspan="6" style="text-align: center; padding: 20px;">{% if lang == 'fa' %}هیچ معامله‌ای یافت نشد.{% else %}No transactions found.{% endif %}</td>
                     </tr>
                     {% endfor %}
                 </tbody>

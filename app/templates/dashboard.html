@@ -8,8 +8,8 @@
 </head>
 <body>
     <header class="header" style="position: relative; padding-top: 50px;">
-        <!-- دکمه تغییر زبان (سمت چپ) -->
-        <div style="position: absolute; top: 12px; left: 16px;">
+        <!-- دکمه تغییر زبان -->
+        <div style="position: absolute; top: 12px; {% if lang == 'fa' %}left{% else %}right{% endif %}: 16px;">
             {% if lang == 'fa' %}
                 <a href="/en" style="color: #fff; background: rgba(255,255,255,0.2); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px;">English</a>
             {% else %}
@@ -17,10 +17,10 @@
             {% endif %}
         </div>
 
-        <!-- دکمه خروج (سمت راست) -->
-        <div style="position: absolute; top: 12px; right: 16px;">
+        <!-- دکمه خروج -->
+        <div style="position: absolute; top: 12px; {% if lang == 'fa' %}right{% else %}left{% endif %}: 16px;">
             <a href="/logout" style="color: #fff; background: rgba(192, 57, 43, 0.8); padding: 6px 12px; border-radius: 6px; text-decoration: none; font-size: 13px; font-weight: bold;">
-                🚪 خروج
+                {% if lang == 'fa' %}🚪 خروج{% else %}🚪 Logout{% endif %}
             </a>
         </div>
 
@@ -37,10 +37,16 @@
     <main class="container">
         <!-- دکمه‌های عملیات -->
         <div style="text-align: center; margin-bottom: 20px;">
-    <a href="/transactions/new" style="...">➕ ثبت معامله جدید</a>
-    <a href="/transactions" style="...">📋 مشاهده لیست معاملات</a>
-    <a href="/reports" style="background: #8e44ad; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">📊 گزارش‌گیری</a>
-</div>
+            <a href="/transactions/new?lang={{ lang }}" style="background: #1e8e3e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">
+                {% if lang == 'fa' %}➕ ثبت معامله جدید{% else %}➕ New Transaction{% endif %}
+            </a>
+            <a href="/transactions?lang={{ lang }}" style="background: #1e3a5f; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">
+                {% if lang == 'fa' %}📋 مشاهده لیست معاملات{% else %}📋 View Transactions{% endif %}
+            </a>
+            <a href="/reports?lang={{ lang }}" style="background: #8e44ad; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin: 5px;">
+                {% if lang == 'fa' %}📊 گزارش‌گیری{% else %}📊 Reports{% endif %}
+            </a>
+        </div>
 
         <!-- کارت‌های داشبورد -->
         <section class="cards">
